@@ -8,7 +8,7 @@ export class StateMachine{
     //     [key:string] : State
     // } = {};
     private transitions:Transistion[] = [];
-     triggers : [Function,Transistion][] = [];
+    private triggers : [Function,Transistion][] = [];
     
     // private defaultState = "";
     public channel:Channel;
