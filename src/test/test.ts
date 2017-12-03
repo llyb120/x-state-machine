@@ -16,8 +16,14 @@ fsm.transition("cubi -> guichu")
 
 
 console.log(fsm.state);
+
+//触发器（效率最差）
 setTimeout(() => {
     a = 1;
-},300)
-// fsm.state = "guichu";
-// fsm.channel.write("btn a clicked");
+},300);
+
+//手动更改状态
+fsm.state = "guichu";
+
+//使用信道
+fsm.channel.write("btn a clicked");
