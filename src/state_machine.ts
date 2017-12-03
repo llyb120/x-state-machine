@@ -4,10 +4,11 @@ export class StateMachine{
 
     private currentFactory: Transistion = null;
     private _state:string = "";
-    private stateMap:{
-        [key:string] : State
-    } = {};
+    // private stateMap:{
+    //     [key:string] : State
+    // } = {};
     private transitions:Transistion[] = [];
+     triggers : [Function,Transistion][] = [];
     
     // private defaultState = "";
     public channel:Channel;
@@ -30,32 +31,39 @@ export class StateMachine{
             this.state = transition.to;
         }
     }
-    
+
     private mainLoop(){
         if(this.channel.firstMessage()){
             let msg = this.channel.read();
             this.onMessageReceive(msg);
         }
+        if(this.triggers.length){
+            for(const [condition,transition] of this.triggers){
+                if(condition()){
+                    this.state = transition.to;
+                    break;
+                }
+            }
+        }
         this.loopTimer = setTimeout(this.mainLoop.bind(this),32);
     }
 
-    when(conditionOrConditions: Function | Function[] | string){
+    when(conditionOrConditions: Function | string){
         if(this.currentFactory === null){
             this.currentFactory = new Transistion;
         }
-        let conditions = [];
+        // let conditions = [];
         let type = typeof conditionOrConditions;
         if(type === 'string'){
             this.currentFactory.whenChannelWrited.push(conditionOrConditions as string);
+            return this;
         }
+        //如果是触发器验证
         else if(type === 'function'){
-            conditions.push(conditionOrConditions);
+            this.triggers.push([conditionOrConditions as Function,this.currentFactory]);
+            return this;
         } 
-        else{
-            conditions = conditionOrConditions as Function[];
-        }
-        this.currentFactory.condition = this.currentFactory.condition.concat(conditions);
-        return this;
+        throw new Error();
     }   
 
     add(){
@@ -159,6 +167,9 @@ export class StateMachine{
             this._state = state;
             return;
         }
+        if(currentState === state){
+            return;
+        }
         //得到当前的状态，如果当前没有状态，那么
         for(const transition of this.transitions){
             if(transition.from.indexOf(currentState) > -1){
@@ -171,7 +182,6 @@ export class StateMachine{
                 return;
             }
         }
-        
         throw new Error();
     }
 

@@ -10,7 +10,7 @@ export class State{
 export class Transistion{
     public from : string[] = [];
     public to : string = "";
-    public condition:Function[] = [];
+    // public condition:Function[] = [];
     public action: Function[] = [];
     public whenChannelWrited : string[] = [];
 }
