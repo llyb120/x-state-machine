@@ -12,5 +12,5 @@ export class Transistion{
     public to : string = "";
     // public condition:Function[] = [];
     public action: Function[] = [];
-    public whenChannelWrited : (string)[] = [];
+    public whenChannelWrited : (string|Function)[] = [];
 }

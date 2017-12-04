@@ -1,10 +1,11 @@
 {
-  "name":"x-state-machine",
+  "name": "x-state-machine",
   "version": "0.0.1",
   "devDependencies": {
-    "ts-loader": "^3.2.0"
+    "ts-loader": "^3.2.0",
+    "typescript": "^2.6.2"
   },
   "typings": "api/index.ts",
   "types": "api/index.ts",
-  "module":"./dist/state_machine"
+  "module": "./dist/state_machine"
 }

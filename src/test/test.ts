@@ -23,6 +23,12 @@ fsm.transition("cubi -> ?")
     .add();
 
 
+fsm.transition("cubi => rigou")
+    .when(item => item == 'guichu')
+    .do(() => console.log(456))
+    .add();
+
+
 console.log(fsm.state);
 
 //触发器（效率最差）
@@ -34,7 +40,9 @@ console.log(fsm.state);
 // fsm.state = "guichu";
 
 //使用信道
-fsm.channel.write("test generic",{guichu:1});
+// fsm.channel.write("test generic",{guichu:1});
+
+fsm.send("guichu");
 
 setTimeout(() => {
     console.log(fsm.state);

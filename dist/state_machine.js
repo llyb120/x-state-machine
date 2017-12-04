@@ -33,6 +33,9 @@
 /******/ 	// expose the module cache
 /******/ 	__webpack_require__.c = installedModules;
 /******/
+/******/ 	// identity function for calling harmony imports with the correct context
+/******/ 	__webpack_require__.i = function(value) { return value; };
+/******/
 /******/ 	// define getter function for harmony exports
 /******/ 	__webpack_require__.d = function(exports, name, getter) {
 /******/ 		if(!__webpack_require__.o(exports, name)) {
@@ -60,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 0);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -70,9 +73,66 @@
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var channel_1 = __webpack_require__(1);
-var state_1 = __webpack_require__(2);
-var StateMachine = (function () {
+var Channel = /** @class */ (function () {
+    function Channel(context) {
+        this.context = context;
+        this.msg = [];
+    }
+    Channel.prototype.write = function (msg, data) {
+        this.msg.push([msg, data]);
+        // this.context.onMessageReceive(msg, data);
+    };
+    Channel.prototype.read = function () {
+        return this.msg.shift();
+    };
+    Channel.prototype.firstMessage = function () {
+        return this.msg.length ? this.msg[0] : null;
+    };
+    return Channel;
+}());
+exports.Channel = Channel;
+
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var State = /** @class */ (function () {
+    function State() {
+        this.condition = [];
+        this.from = [];
+        this.to = [];
+        this.action = [];
+    }
+    return State;
+}());
+exports.State = State;
+var Transistion = /** @class */ (function () {
+    function Transistion() {
+        this.from = [];
+        this.to = "";
+        // public condition:Function[] = [];
+        this.action = [];
+        this.whenChannelWrited = [];
+    }
+    return Transistion;
+}());
+exports.Transistion = Transistion;
+
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var channel_1 = __webpack_require__(0);
+var state_1 = __webpack_require__(1);
+var StateMachine = /** @class */ (function () {
     function StateMachine() {
         this.currentFactory = null;
         this._state = "";
@@ -80,7 +140,6 @@ var StateMachine = (function () {
         //     [key:string] : State
         // } = {};
         this.transitions = [];
-        this.triggers = [];
         this.loopTimer = null;
         this.channel = new channel_1.Channel(this);
         this.mainLoop();
@@ -115,18 +174,24 @@ var StateMachine = (function () {
             var matched = void 0;
             for (var _b = 0, _c = transition.whenChannelWrited; _b < _c.length; _b++) {
                 var item = _c[_b];
-                if (item.indexOf("?") > -1) {
-                    var reg = new RegExp(item.replace(/\?/g, " (\\S+) "), "g");
-                    var m = [];
-                    var r = null;
-                    while (r = reg.exec(msg)) {
-                        m.push(r[1].trim());
+                if (typeof item === 'string') {
+                    if (item.indexOf("?") > -1) {
+                        var reg = new RegExp('^' + item.replace(/\?/g, " (\\S+) ") + '$', "g");
+                        var m = [];
+                        var r = null;
+                        while (r = reg.exec(msg)) {
+                            m.push(r[1].trim());
+                        }
+                        m.length && (matched = m) && (flag = true);
                     }
-                    m.length && (matched = m);
-                    flag = true;
+                    else if (msg === item)
+                        flag = true;
                 }
-                else if (msg === item)
-                    flag = true;
+                else {
+                    var condition = item;
+                    if (condition(msg))
+                        flag = true;
+                }
             }
             if (!flag)
                 continue;
@@ -144,15 +209,14 @@ var StateMachine = (function () {
             console.log(msg, data);
             this.onMessageReceive(msg, data);
         }
-        if (this.triggers.length) {
-            for (var _i = 0, _b = this.triggers; _i < _b.length; _i++) {
-                var _c = _b[_i], condition = _c[0], transition = _c[1];
-                if (condition()) {
-                    this.state = transition.to;
-                    break;
-                }
-            }
-        }
+        // if (this.triggers.length) {
+        //     for (const [condition, transition] of this.triggers) {
+        //         if (condition()) {
+        //             this.state = transition.to;
+        //             break;
+        //         }
+        //     }
+        // }
         this.loopTimer = setTimeout(this.mainLoop.bind(this), 32);
     };
     StateMachine.prototype.when = function (conditionOrConditions) {
@@ -167,7 +231,9 @@ var StateMachine = (function () {
             return this;
         }
         else if (type === 'function') {
-            this.triggers.push([conditionOrConditions, this.currentFactory]);
+            conditionOrConditions = conditionOrConditions;
+            this.currentFactory.whenChannelWrited.push(conditionOrConditions);
+            // this.triggers.push([conditionOrConditions as Function, this.currentFactory]);
             return this;
         }
         throw new Error();
@@ -278,63 +344,6 @@ var StateMachine = (function () {
     return StateMachine;
 }());
 exports.StateMachine = StateMachine;
-
-
-/***/ }),
-/* 1 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var Channel = (function () {
-    function Channel(context) {
-        this.context = context;
-        this.msg = [];
-    }
-    Channel.prototype.write = function (msg, data) {
-        this.msg.push([msg, data]);
-        // this.context.onMessageReceive(msg, data);
-    };
-    Channel.prototype.read = function () {
-        return this.msg.shift();
-    };
-    Channel.prototype.firstMessage = function () {
-        return this.msg.length ? this.msg[0] : null;
-    };
-    return Channel;
-}());
-exports.Channel = Channel;
-
-
-/***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var State = (function () {
-    function State() {
-        this.condition = [];
-        this.from = [];
-        this.to = [];
-        this.action = [];
-    }
-    return State;
-}());
-exports.State = State;
-var Transistion = (function () {
-    function Transistion() {
-        this.from = [];
-        this.to = "";
-        // public condition:Function[] = [];
-        this.action = [];
-        this.whenChannelWrited = [];
-    }
-    return Transistion;
-}());
-exports.Transistion = Transistion;
 
 
 /***/ })

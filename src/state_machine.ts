@@ -8,7 +8,7 @@ export class StateMachine {
     //     [key:string] : State
     // } = {};
     private transitions: Transistion[] = [];
-    private triggers: [Function, Transistion][] = [];
+    // private triggers: [Function, Transistion][] = [];
 
     // private defaultState = "";
     public channel: Channel;
@@ -41,22 +41,27 @@ export class StateMachine {
         return false;
     }
 
-    private onMessageReceive(msg: string, data: any) {
+    private onMessageReceive(msg: any, data: any) {
         for (const transition of this.transitions) {
             let flag = false;
-            let matched : any;
+            let matched: any;
             for (const item of transition.whenChannelWrited) {
-                if(item.indexOf("?") > -1){
-                    let reg = new RegExp(item.replace(/\?/g," (\\S+) "),"g");
-                    let m = [];
-                    let r = null;
-                    while(r = reg.exec(msg)){
-                        m.push(r[1].trim());
+                if(typeof item === 'string'){
+                    if (item.indexOf("?") > -1) {
+                        let reg = new RegExp('^'+item.replace(/\?/g, " (\\S+) ") + '$', "g");
+                        let m = [];
+                        let r = null;
+                        while (r = reg.exec(msg)) {
+                            m.push(r[1].trim());
+                        }
+                        m.length && (matched = m) && (flag = true);
                     }
-                    m.length && (matched = m);
-                    flag = true;
+                    else if (msg === item) flag = true;
                 }
-                else if(msg === item) flag = true;
+                else{
+                    let condition = item as Function;
+                    if(condition(msg)) flag = true;
+                }
             }
             if (!flag) continue;
             if (transition.from.indexOf(this.state) === -1) {
@@ -74,14 +79,14 @@ export class StateMachine {
             console.log(msg, data)
             this.onMessageReceive(msg, data);
         }
-        if (this.triggers.length) {
-            for (const [condition, transition] of this.triggers) {
-                if (condition()) {
-                    this.state = transition.to;
-                    break;
-                }
-            }
-        }
+        // if (this.triggers.length) {
+        //     for (const [condition, transition] of this.triggers) {
+        //         if (condition()) {
+        //             this.state = transition.to;
+        //             break;
+        //         }
+        //     }
+        // }
         this.loopTimer = setTimeout(this.mainLoop.bind(this), 32);
     }
 
@@ -99,7 +104,9 @@ export class StateMachine {
         }
         //如果是触发器验证
         else if (type === 'function') {
-            this.triggers.push([conditionOrConditions as Function, this.currentFactory]);
+            conditionOrConditions = conditionOrConditions as Function;
+            this.currentFactory.whenChannelWrited.push(conditionOrConditions);
+            // this.triggers.push([conditionOrConditions as Function, this.currentFactory]);
             return this;
         }
         throw new Error();
@@ -181,7 +188,7 @@ export class StateMachine {
     }
 
 
-    send(msg: string, data?) {
+    send(msg: any, data?) {
         return this.channel.write(msg, data);
     }
 

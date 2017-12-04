@@ -7,7 +7,7 @@ export class Channel {
 
     }
 
-    write(msg: string, data?: any) {
+    write(msg: any, data?: any) {
         this.msg.push([msg, data]);
         // this.context.onMessageReceive(msg, data);
     }
