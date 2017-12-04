@@ -15,7 +15,7 @@ var StateMachine = (function () {
         this.channel = new channel_1.Channel(this);
         this.mainLoop();
     }
-    StateMachine.prototype.changeState = function (oldState, newState, data) {
+    StateMachine.prototype.changeState = function (oldState, newState, data, preData) {
         //得到当前的状态，如果当前没有状态，那么
         for (var _i = 0, _a = this.transitions; _i < _a.length; _i++) {
             var transition = _a[_i];
@@ -25,7 +25,7 @@ var StateMachine = (function () {
                 //进度转化
                 for (var _b = 0, _c = transition.action; _b < _c.length; _b++) {
                     var action = _c[_b];
-                    var ret = action(data);
+                    var ret = preData === undefined ? action(data) : action.apply(void 0, preData.concat([data]));
                     if (typeof ret === 'string') {
                         this.forceSetState(ret);
                     }
@@ -41,13 +41,29 @@ var StateMachine = (function () {
     StateMachine.prototype.onMessageReceive = function (msg, data) {
         for (var _i = 0, _a = this.transitions; _i < _a.length; _i++) {
             var transition = _a[_i];
-            if (transition.whenChannelWrited.indexOf(msg) === -1) {
-                continue;
+            var flag = false;
+            var matched = void 0;
+            for (var _b = 0, _c = transition.whenChannelWrited; _b < _c.length; _b++) {
+                var item = _c[_b];
+                if (item.indexOf("?") > -1) {
+                    var reg = new RegExp(item.replace(/\?/g, "(\\S+)"), "g");
+                    var m = [];
+                    var r = null;
+                    while (r = reg.exec(msg)) {
+                        m.push(r[1]);
+                    }
+                    m.length && (matched = m);
+                    flag = true;
+                }
+                else if (msg === item)
+                    flag = true;
             }
+            if (!flag)
+                continue;
             if (transition.from.indexOf(this.state) === -1) {
                 continue;
             }
-            this.changeState(this.state, transition.to, data);
+            this.changeState(this.state, transition.to, data, matched || undefined);
             // this.state = transition.to;
             return;
         }
@@ -76,6 +92,7 @@ var StateMachine = (function () {
         // let conditions = [];
         var type = typeof conditionOrConditions;
         if (type === 'string') {
+            conditionOrConditions = conditionOrConditions;
             this.currentFactory.whenChannelWrited.push(conditionOrConditions);
             return this;
         }

@@ -20,14 +20,14 @@ export class StateMachine {
         this.mainLoop();
     }
 
-    private changeState(oldState: string, newState: string, data?) {
+    private changeState(oldState: string, newState: string, data?, preData?) {
         //得到当前的状态，如果当前没有状态，那么
         for (const transition of this.transitions) {
             if (transition.from.indexOf(oldState) > -1) {
                 if (transition.to !== newState) continue;
                 //进度转化
                 for (const action of transition.action) {
-                    let ret = action(data);
+                    let ret = preData === undefined ? action(data) : action(...preData, data);
                     if (typeof ret === 'string') {
                         this.forceSetState(ret);
                     }
@@ -43,13 +43,26 @@ export class StateMachine {
 
     private onMessageReceive(msg: string, data: any) {
         for (const transition of this.transitions) {
-            if (transition.whenChannelWrited.indexOf(msg) === -1) {
-                continue;
+            let flag = false;
+            let matched : any;
+            for (const item of transition.whenChannelWrited) {
+                if(item.indexOf("?") > -1){
+                    let reg = new RegExp(item.replace(/\?/g,"(\\S+)"),"g");
+                    let m = [];
+                    let r = null;
+                    while(r = reg.exec(msg)){
+                        m.push(r[1]);
+                    }
+                    m.length && (matched = m);
+                    flag = true;
+                }
+                else if(msg === item) flag = true;
             }
+            if (!flag) continue;
             if (transition.from.indexOf(this.state) === -1) {
                 continue;
             }
-            this.changeState(this.state, transition.to, data);
+            this.changeState(this.state, transition.to, data, matched || undefined);
             // this.state = transition.to;
             return;
         }
@@ -80,6 +93,7 @@ export class StateMachine {
         // let conditions = [];
         let type = typeof conditionOrConditions;
         if (type === 'string') {
+            conditionOrConditions = conditionOrConditions as string;
             this.currentFactory.whenChannelWrited.push(conditionOrConditions as string);
             return this;
         }

@@ -13,9 +13,13 @@ fsm.transition("cubi -> guichu")
     .do(function () { return console.log(123); })
     .add();
 fsm.transition("cubi -> ?")
-    .when("test generic")
-    .do(function (data) {
-    console.log(data);
+    .when("test ?")
+    .do(function () {
+    var args = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        args[_i] = arguments[_i];
+    }
+    console.log.apply(console, ['rilegou'].concat(args));
     return '2b';
 })
     .add();

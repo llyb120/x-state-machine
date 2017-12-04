@@ -15,9 +15,9 @@ fsm.transition("cubi -> guichu")
     .add();
 
 fsm.transition("cubi -> ?")
-    .when("test generic")
-    .do((data) => {
-        console.log(data);
+    .when("test ?")
+    .do((...args) => {
+        console.log('rilegou',...args);
         return '2b';
     })
     .add();
