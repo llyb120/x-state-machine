@@ -1,73 +1,98 @@
 import { Channel } from './channel';
 import { State, Transistion } from './state';
-export class StateMachine{
+export class StateMachine {
 
     private currentFactory: Transistion = null;
-    private _state:string = "";
+    private _state: string = "";
     // private stateMap:{
     //     [key:string] : State
     // } = {};
-    private transitions:Transistion[] = [];
-    private triggers : [Function,Transistion][] = [];
-    
+    private transitions: Transistion[] = [];
+    private triggers: [Function, Transistion][] = [];
+
     // private defaultState = "";
-    public channel:Channel;
+    public channel: Channel;
     private loopTimer = null;
 
-    constructor(){
+    constructor() {
         this.channel = new Channel(this);
-        
+
         this.mainLoop();
     }
 
-    private onMessageReceive(msg : string){
-        for(const transition of this.transitions){ 
-            if(transition.whenChannelWrited.indexOf(msg) === -1){
+    private changeState(oldState: string, newState: string, data?) {
+        //得到当前的状态，如果当前没有状态，那么
+        for (const transition of this.transitions) {
+            if (transition.from.indexOf(oldState) > -1) {
+                if (transition.to !== newState) continue;
+                //进度转化
+                for (const action of transition.action) {
+                    let ret = action(data);
+                    if(typeof ret === 'string'){
+                        this.forceSetState(ret);
+                    }
+                }
+                if(newState !== '?'){
+                    this._state = newState;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private onMessageReceive(msg: string, data: any) {
+        for (const transition of this.transitions) {
+            if (transition.whenChannelWrited.indexOf(msg) === -1) {
                 continue;
             }
-            if(transition.from.indexOf(this.state) === -1){
+            if (transition.from.indexOf(this.state) === -1) {
                 continue;
             }
-            this.state = transition.to;
+            this.changeState(this.state,transition.to,data);
+            // this.state = transition.to;
+            return;
         }
     }
 
-    private mainLoop(){
-        if(this.channel.firstMessage()){
-            let msg = this.channel.read();
-            this.onMessageReceive(msg);
+    private mainLoop() {
+        if (this.channel.firstMessage()) {
+            let [msg, data] = this.channel.read();
+            console.log(msg, data)
+            this.onMessageReceive(msg, data);
         }
-        if(this.triggers.length){
-            for(const [condition,transition] of this.triggers){
-                if(condition()){
+        if (this.triggers.length) {
+            for (const [condition, transition] of this.triggers) {
+                if (condition()) {
                     this.state = transition.to;
                     break;
                 }
             }
         }
-        this.loopTimer = setTimeout(this.mainLoop.bind(this),32);
+        this.loopTimer = setTimeout(this.mainLoop.bind(this), 32);
     }
 
-    when(conditionOrConditions: Function | string){
-        if(this.currentFactory === null){
+
+    when(conditionOrConditions: Function | string) {
+        if (this.currentFactory === null) {
             this.currentFactory = new Transistion;
         }
         // let conditions = [];
         let type = typeof conditionOrConditions;
-        if(type === 'string'){
+        if (type === 'string') {
             this.currentFactory.whenChannelWrited.push(conditionOrConditions as string);
             return this;
         }
         //如果是触发器验证
-        else if(type === 'function'){
-            this.triggers.push([conditionOrConditions as Function,this.currentFactory]);
+        else if (type === 'function') {
+            this.triggers.push([conditionOrConditions as Function, this.currentFactory]);
             return this;
-        } 
+        }
         throw new Error();
-    }   
+    }
 
-    add(){
-        if(this.currentFactory === null){
+    add() {
+        if (this.currentFactory === null) {
             throw new Error();
         }
         //如果没有名字，那么排除
@@ -78,7 +103,7 @@ export class StateMachine{
         // this.stateMap[this.currentFactory.name] = this.currentFactory;
         //如果没有来源，说明为默认状态，只允许有一个默认状态
         // if(this.currentFactory.from.length === 0 && this.defaultState === ""){
-            // this.defaultState = this.currentFactory.name;
+        // this.defaultState = this.currentFactory.name;
         // }
         this.currentFactory = null;
     }
@@ -113,27 +138,27 @@ export class StateMachine{
     //     return this;
     // }
 
-    do(actionOrActions : Function | Function[]){
+    do(actionOrActions: Function | Function[]) {
         let actions = typeof actionOrActions === 'function' ? [actionOrActions] : actionOrActions;
-        if(this.currentFactory === null){
+        if (this.currentFactory === null) {
             this.currentFactory = new Transistion;
-        } 
+        }
         this.currentFactory.action = this.currentFactory.action.concat(actions);
         return this;
 
     }
 
 
-    transition(rule : string){
-        if(this.currentFactory === null){
+    transition(rule: string) {
+        if (this.currentFactory === null) {
             this.currentFactory = new Transistion;
-        } 
+        }
         let arr = rule.split("->").map(item => item.trim());
-        if(arr.length != 2){
+        if (arr.length != 2) {
             throw new Error();
         }
-        else{
-            let [froms,to] = arr;
+        else {
+            let [froms, to] = arr;
             let fromArr = froms.split(",").map(item => item.trim());
             this.currentFactory.from = this.currentFactory.from.concat(fromArr);
             this.currentFactory.to = to;
@@ -141,7 +166,7 @@ export class StateMachine{
         return this;
     }
 
-    
+
 
     // name(name : string){
     //     if(this.currentFactory === null){
@@ -152,37 +177,32 @@ export class StateMachine{
     // }
 
 
-    
-    get state(){
+
+    get state() {
         //如果当前没有状态，那么采用默认状态
-        // if(this._state === ""){
-            // return this.defaultState;
-        // }
         return this._state;
     }
 
-    set state(state){
+    set state(state) {
         let currentState = this.state;
-        if(currentState === ""){
+        if (currentState === "") {
             this._state = state;
             return;
         }
-        if(currentState === state){
+        if (currentState === state) {
             return;
         }
-        //得到当前的状态，如果当前没有状态，那么
-        for(const transition of this.transitions){
-            if(transition.from.indexOf(currentState) > -1){
-                if(transition.to !== state) continue;
-                //进度转化
-                for(const action of transition.action){
-                    action();
-                }
-                this._state = state;
-                return;
-            }
+
+        if (this.changeState(currentState, state)) {
+            return;
         }
+
         throw new Error();
+    }
+
+
+    public forceSetState(state: string) {
+        this._state = state;
     }
 
 

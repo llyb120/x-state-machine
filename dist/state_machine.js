@@ -85,7 +85,30 @@ var StateMachine = (function () {
         this.channel = new channel_1.Channel(this);
         this.mainLoop();
     }
-    StateMachine.prototype.onMessageReceive = function (msg) {
+    StateMachine.prototype.changeState = function (oldState, newState, data) {
+        //得到当前的状态，如果当前没有状态，那么
+        for (var _i = 0, _a = this.transitions; _i < _a.length; _i++) {
+            var transition = _a[_i];
+            if (transition.from.indexOf(oldState) > -1) {
+                if (transition.to !== newState)
+                    continue;
+                //进度转化
+                for (var _b = 0, _c = transition.action; _b < _c.length; _b++) {
+                    var action = _c[_b];
+                    var ret = action(data);
+                    if (typeof ret === 'string') {
+                        this.forceSetState(ret);
+                    }
+                }
+                if (newState !== '?') {
+                    this._state = newState;
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+    StateMachine.prototype.onMessageReceive = function (msg, data) {
         for (var _i = 0, _a = this.transitions; _i < _a.length; _i++) {
             var transition = _a[_i];
             if (transition.whenChannelWrited.indexOf(msg) === -1) {
@@ -94,17 +117,20 @@ var StateMachine = (function () {
             if (transition.from.indexOf(this.state) === -1) {
                 continue;
             }
-            this.state = transition.to;
+            this.changeState(this.state, transition.to, data);
+            // this.state = transition.to;
+            return;
         }
     };
     StateMachine.prototype.mainLoop = function () {
         if (this.channel.firstMessage()) {
-            var msg = this.channel.read();
-            this.onMessageReceive(msg);
+            var _a = this.channel.read(), msg = _a[0], data = _a[1];
+            console.log(msg, data);
+            this.onMessageReceive(msg, data);
         }
         if (this.triggers.length) {
-            for (var _i = 0, _a = this.triggers; _i < _a.length; _i++) {
-                var _b = _a[_i], condition = _b[0], transition = _b[1];
+            for (var _i = 0, _b = this.triggers; _i < _b.length; _i++) {
+                var _c = _b[_i], condition = _c[0], transition = _c[1];
                 if (condition()) {
                     this.state = transition.to;
                     break;
@@ -207,9 +233,6 @@ var StateMachine = (function () {
         // }
         get: function () {
             //如果当前没有状态，那么采用默认状态
-            // if(this._state === ""){
-            // return this.defaultState;
-            // }
             return this._state;
         },
         set: function (state) {
@@ -221,26 +244,17 @@ var StateMachine = (function () {
             if (currentState === state) {
                 return;
             }
-            //得到当前的状态，如果当前没有状态，那么
-            for (var _i = 0, _a = this.transitions; _i < _a.length; _i++) {
-                var transition = _a[_i];
-                if (transition.from.indexOf(currentState) > -1) {
-                    if (transition.to !== state)
-                        continue;
-                    //进度转化
-                    for (var _b = 0, _c = transition.action; _b < _c.length; _b++) {
-                        var action = _c[_b];
-                        action();
-                    }
-                    this._state = state;
-                    return;
-                }
+            if (this.changeState(currentState, state)) {
+                return;
             }
             throw new Error();
         },
         enumerable: true,
         configurable: true
     });
+    StateMachine.prototype.forceSetState = function (state) {
+        this._state = state;
+    };
     return StateMachine;
 }());
 exports.StateMachine = StateMachine;
@@ -258,8 +272,9 @@ var Channel = (function () {
         this.context = context;
         this.msg = [];
     }
-    Channel.prototype.write = function (msg) {
-        this.msg.push(msg);
+    Channel.prototype.write = function (msg, data) {
+        this.msg.push([msg, data]);
+        // this.context.onMessageReceive(msg, data);
     };
     Channel.prototype.read = function () {
         return this.msg.shift();

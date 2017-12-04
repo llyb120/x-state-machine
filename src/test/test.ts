@@ -10,20 +10,32 @@ let a = 0;
 fsm.state = "cubi";
 fsm.transition("cubi -> guichu")
     .when("btn a clicked")
-    .when(() => a == 1)
+    // .when(() => a == 1)
     .do(() => console.log(123))
+    .add();
+
+fsm.transition("cubi -> ?")
+    .when("test generic")
+    .do((data) => {
+        console.log(data);
+        return '2b';
+    })
     .add();
 
 
 console.log(fsm.state);
 
 //触发器（效率最差）
-setTimeout(() => {
-    a = 1;
-},300);
+// setTimeout(() => {
+//     a = 1;
+// },300);
 
-//手动更改状态
-fsm.state = "guichu";
+// //手动更改状态
+// fsm.state = "guichu";
 
 //使用信道
-fsm.channel.write("btn a clicked");
+fsm.channel.write("test generic",{guichu:1});
+
+setTimeout(() => {
+    console.log(fsm.state);
+},500);
