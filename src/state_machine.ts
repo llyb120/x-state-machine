@@ -167,7 +167,7 @@ export class StateMachine {
         if (this.currentFactory === null) {
             this.currentFactory = new Transistion;
         }
-        let arr = rule.split("->").map(item => item.trim());
+        let arr = rule.split(/(?:\-|\=)\>/).map(item => item.trim());
         if (arr.length != 2) {
             throw new Error();
         }

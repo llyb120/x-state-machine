@@ -228,7 +228,7 @@ var StateMachine = (function () {
         if (this.currentFactory === null) {
             this.currentFactory = new state_1.Transistion;
         }
-        var arr = rule.split("->").map(function (item) { return item.trim(); });
+        var arr = rule.split(/(?:\-|\=)\>/).map(function (item) { return item.trim(); });
         if (arr.length != 2) {
             throw new Error();
         }
