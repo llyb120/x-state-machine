@@ -153,6 +153,9 @@ var StateMachine = (function () {
         }
         return this;
     };
+    StateMachine.prototype.send = function (msg, data) {
+        return this.channel.write(msg, data);
+    };
     Object.defineProperty(StateMachine.prototype, "state", {
         // name(name : string){
         //     if(this.currentFactory === null){

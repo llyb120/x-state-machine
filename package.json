@@ -4,7 +4,7 @@
   "devDependencies": {
     "ts-loader": "^3.2.0"
   },
-  "typings": "include/index.ts",
-  "types": "include/index.ts",
-  "module":"./dist/state-machine"
+  "typings": "api/index.ts",
+  "types": "api/index.ts",
+  "module":"./dist/state_machine"
 }

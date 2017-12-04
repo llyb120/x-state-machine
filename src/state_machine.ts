@@ -28,11 +28,11 @@ export class StateMachine {
                 //进度转化
                 for (const action of transition.action) {
                     let ret = action(data);
-                    if(typeof ret === 'string'){
+                    if (typeof ret === 'string') {
                         this.forceSetState(ret);
                     }
                 }
-                if(newState !== '?'){
+                if (newState !== '?') {
                     this._state = newState;
                 }
                 return true;
@@ -49,7 +49,7 @@ export class StateMachine {
             if (transition.from.indexOf(this.state) === -1) {
                 continue;
             }
-            this.changeState(this.state,transition.to,data);
+            this.changeState(this.state, transition.to, data);
             // this.state = transition.to;
             return;
         }
@@ -164,6 +164,11 @@ export class StateMachine {
             this.currentFactory.to = to;
         }
         return this;
+    }
+
+
+    send(msg: string, data?) {
+        return this.channel.write(msg, data);
     }
 
 
