@@ -19,7 +19,7 @@ fsm.transition("cubi -> ?")
     for (var _i = 0; _i < arguments.length; _i++) {
         args[_i] = arguments[_i];
     }
-    console.log.apply(console, ['rilegou'].concat(args));
+    console.log.apply(console, args);
     return '2b';
 })
     .add();
