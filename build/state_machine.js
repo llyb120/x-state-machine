@@ -46,11 +46,11 @@ var StateMachine = (function () {
             for (var _b = 0, _c = transition.whenChannelWrited; _b < _c.length; _b++) {
                 var item = _c[_b];
                 if (item.indexOf("?") > -1) {
-                    var reg = new RegExp(item.replace(/\?/g, "(\\S+)"), "g");
+                    var reg = new RegExp(item.replace(/\?/g, " (\\S+) "), "g");
                     var m = [];
                     var r = null;
                     while (r = reg.exec(msg)) {
-                        m.push(r[1]);
+                        m.push(r[1].trim());
                     }
                     m.length && (matched = m);
                     flag = true;

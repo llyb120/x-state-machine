@@ -47,11 +47,11 @@ export class StateMachine {
             let matched : any;
             for (const item of transition.whenChannelWrited) {
                 if(item.indexOf("?") > -1){
-                    let reg = new RegExp(item.replace(/\?/g,"(\\S+)"),"g");
+                    let reg = new RegExp(item.replace(/\?/g," (\\S+) "),"g");
                     let m = [];
                     let r = null;
                     while(r = reg.exec(msg)){
-                        m.push(r[1]);
+                        m.push(r[1].trim());
                     }
                     m.length && (matched = m);
                     flag = true;
