@@ -99,6 +99,13 @@ export class StateMachine {
         this.loopTimer = setTimeout(this.mainLoop.bind(this), 32);
     }
 
+    public destory(){
+        if(this.loopTimer){
+            clearTimeout(this.loopTimer);
+            this.loopTimer = null;
+        }
+        this.channel = null;
+    }
 
     when(conditionOrConditions: Function | string | string[]) {
         if (this.currentFactory === null) {
