@@ -25,7 +25,16 @@ fsm.transition("cubi -> ?")
 
 fsm.transition("cubi => rigou")
     .when(item => item == 'guichu')
-    .do(() => console.log(456))
+    .do(() => {
+        console.log(456);
+        return false;
+    })
+    .add();
+
+
+fsm.transition("cubi => riqiang")
+    .when(item => item == 'guichu')
+    .do(() => console.log(789))
     .add();
 
 

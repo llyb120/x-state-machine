@@ -26,16 +26,20 @@ export class StateMachine {
             if (transition.from.indexOf(oldState) > -1) {
                 if (transition.to !== newState) continue;
                 //进度转化
+                //只允许触发一个
                 for (const action of transition.action) {
                     let ret = preData === undefined ? action(data) : action(...preData, data);
+                    if (ret === false) {
+                        throw new Error();
+                    }
                     if (typeof ret === 'string') {
                         this.forceSetState(ret);
                     }
+                    if (newState !== '?') {
+                        this._state = newState;
+                    }
+                    return true;
                 }
-                if (newState !== '?') {
-                    this._state = newState;
-                }
-                return true;
             }
         }
         return false;
@@ -46,9 +50,9 @@ export class StateMachine {
             let flag = false;
             let matched: any;
             for (const item of transition.whenChannelWrited) {
-                if(typeof item === 'string'){
+                if (typeof item === 'string') {
                     if (item.indexOf("?") > -1) {
-                        let reg = new RegExp('^'+item.replace(/\?/g, " (\\S+) ") + '$', "g");
+                        let reg = new RegExp('^' + item.replace(/\?/g, " (\\S+) ") + '$', "g");
                         let m = [];
                         let r = null;
                         while (r = reg.exec(msg)) {
@@ -58,18 +62,25 @@ export class StateMachine {
                     }
                     else if (msg === item) flag = true;
                 }
-                else{
+                else {
                     let condition = item as Function;
-                    if(condition(msg)) flag = true;
+                    if (condition(msg)) flag = true;
                 }
             }
             if (!flag) continue;
             if (transition.from.indexOf(this.state) === -1) {
                 continue;
             }
-            this.changeState(this.state, transition.to, data, matched || undefined);
+            //多个并发的情况，只允许有一个生效
+            try {
+                this.changeState(this.state, transition.to, data, matched || undefined);
+                return;
+            }
+            catch (e) {
+
+            }
             // this.state = transition.to;
-            return;
+            // return;
         }
     }
 
@@ -109,7 +120,7 @@ export class StateMachine {
             // this.triggers.push([conditionOrConditions as Function, this.currentFactory]);
             return this;
         }
-        else{
+        else {
             conditionOrConditions = conditionOrConditions as string[];
             this.currentFactory.whenChannelWrited = this.currentFactory.whenChannelWrited.concat(conditionOrConditions);
             return this;

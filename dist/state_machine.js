@@ -92,15 +92,24 @@ var StateMachine = (function () {
                 if (transition.to !== newState)
                     continue;
                 //进度转化
+                //只允许触发一个
                 for (var _b = 0, _c = transition.action; _b < _c.length; _b++) {
                     var action = _c[_b];
-                    var ret = preData === undefined ? action(data) : action.apply(void 0, preData.concat([data]));
-                    if (typeof ret === 'string') {
-                        this.forceSetState(ret);
+                    try {
+                        var ret = preData === undefined ? action(data) : action.apply(void 0, preData.concat([data]));
+                        if (ret === false) {
+                            break;
+                        }
+                        if (typeof ret === 'string') {
+                            this.forceSetState(ret);
+                        }
+                        if (newState !== '?') {
+                            this._state = newState;
+                        }
+                        break;
                     }
-                }
-                if (newState !== '?') {
-                    this._state = newState;
+                    catch (e) {
+                    }
                 }
                 return true;
             }
