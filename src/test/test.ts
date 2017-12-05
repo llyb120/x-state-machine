@@ -17,7 +17,7 @@ fsm.transition("cubi -> guichu")
 fsm.transition("cubi -> ?")
     .when("test ?")
     .do((...args) => {
-        console.log(...args);
+        // console.log(...args);
         return '2b';
     })
     .add();

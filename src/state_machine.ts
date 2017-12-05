@@ -112,8 +112,8 @@ export class StateMachine {
         else{
             conditionOrConditions = conditionOrConditions as string[];
             this.currentFactory.whenChannelWrited = this.currentFactory.whenChannelWrited.concat(conditionOrConditions);
+            return this;
         }
-        throw new Error();
     }
 
     add() {

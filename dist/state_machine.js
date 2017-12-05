@@ -33,9 +33,6 @@
 /******/ 	// expose the module cache
 /******/ 	__webpack_require__.c = installedModules;
 /******/
-/******/ 	// identity function for calling harmony imports with the correct context
-/******/ 	__webpack_require__.i = function(value) { return value; };
-/******/
 /******/ 	// define getter function for harmony exports
 /******/ 	__webpack_require__.d = function(exports, name, getter) {
 /******/ 		if(!__webpack_require__.o(exports, name)) {
@@ -63,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 0);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -73,66 +70,9 @@
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var Channel = /** @class */ (function () {
-    function Channel(context) {
-        this.context = context;
-        this.msg = [];
-    }
-    Channel.prototype.write = function (msg, data) {
-        this.msg.push([msg, data]);
-        // this.context.onMessageReceive(msg, data);
-    };
-    Channel.prototype.read = function () {
-        return this.msg.shift();
-    };
-    Channel.prototype.firstMessage = function () {
-        return this.msg.length ? this.msg[0] : null;
-    };
-    return Channel;
-}());
-exports.Channel = Channel;
-
-
-/***/ }),
-/* 1 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var State = /** @class */ (function () {
-    function State() {
-        this.condition = [];
-        this.from = [];
-        this.to = [];
-        this.action = [];
-    }
-    return State;
-}());
-exports.State = State;
-var Transistion = /** @class */ (function () {
-    function Transistion() {
-        this.from = [];
-        this.to = "";
-        // public condition:Function[] = [];
-        this.action = [];
-        this.whenChannelWrited = [];
-    }
-    return Transistion;
-}());
-exports.Transistion = Transistion;
-
-
-/***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var channel_1 = __webpack_require__(0);
-var state_1 = __webpack_require__(1);
-var StateMachine = /** @class */ (function () {
+var channel_1 = __webpack_require__(1);
+var state_1 = __webpack_require__(2);
+var StateMachine = (function () {
     function StateMachine() {
         this.currentFactory = null;
         this._state = "";
@@ -236,7 +176,11 @@ var StateMachine = /** @class */ (function () {
             // this.triggers.push([conditionOrConditions as Function, this.currentFactory]);
             return this;
         }
-        throw new Error();
+        else {
+            conditionOrConditions = conditionOrConditions;
+            this.currentFactory.whenChannelWrited = this.currentFactory.whenChannelWrited.concat(conditionOrConditions);
+            return this;
+        }
     };
     StateMachine.prototype.add = function () {
         if (this.currentFactory === null) {
@@ -344,6 +288,63 @@ var StateMachine = /** @class */ (function () {
     return StateMachine;
 }());
 exports.StateMachine = StateMachine;
+
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var Channel = (function () {
+    function Channel(context) {
+        this.context = context;
+        this.msg = [];
+    }
+    Channel.prototype.write = function (msg, data) {
+        this.msg.push([msg, data]);
+        // this.context.onMessageReceive(msg, data);
+    };
+    Channel.prototype.read = function () {
+        return this.msg.shift();
+    };
+    Channel.prototype.firstMessage = function () {
+        return this.msg.length ? this.msg[0] : null;
+    };
+    return Channel;
+}());
+exports.Channel = Channel;
+
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var State = (function () {
+    function State() {
+        this.condition = [];
+        this.from = [];
+        this.to = [];
+        this.action = [];
+    }
+    return State;
+}());
+exports.State = State;
+var Transistion = (function () {
+    function Transistion() {
+        this.from = [];
+        this.to = "";
+        // public condition:Function[] = [];
+        this.action = [];
+        this.whenChannelWrited = [];
+    }
+    return Transistion;
+}());
+exports.Transistion = Transistion;
 
 
 /***/ })
