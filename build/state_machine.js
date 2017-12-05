@@ -3,14 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var channel_1 = require("./channel");
 var state_1 = require("./state");
 var StateMachine = (function () {
-    function StateMachine() {
+    function StateMachine(context) {
+        this.context = context;
         this.currentFactory = null;
         this._state = "";
         // private stateMap:{
         //     [key:string] : State
         // } = {};
         this.transitions = [];
-        this.triggers = [];
         this.loopTimer = null;
         this.channel = new channel_1.Channel(this);
         this.mainLoop();
@@ -23,12 +23,13 @@ var StateMachine = (function () {
                 if (transition.to !== newState)
                     continue;
                 //进度转化
-                for (var _b = 0, _c = transition.action; _b < _c.length; _b++) {
-                    var action = _c[_b];
-                    var ret = preData === undefined ? action(data) : action.apply(void 0, preData.concat([data]));
-                    if (typeof ret === 'string') {
-                        this.forceSetState(ret);
-                    }
+                //只允许触发一个
+                var ret = preData === undefined ? transition.action.call(this.context, data) : (_b = transition.action).call.apply(_b, [this.context].concat(preData, [data]));
+                if (ret === false) {
+                    throw new Error();
+                }
+                if (typeof ret === 'string') {
+                    this.forceSetState(ret);
                 }
                 if (newState !== '?') {
                     this._state = newState;
@@ -37,6 +38,7 @@ var StateMachine = (function () {
             }
         }
         return false;
+        var _b;
     };
     StateMachine.prototype.onMessageReceive = function (msg, data) {
         for (var _i = 0, _a = this.transitions; _i < _a.length; _i++) {
@@ -45,27 +47,39 @@ var StateMachine = (function () {
             var matched = void 0;
             for (var _b = 0, _c = transition.whenChannelWrited; _b < _c.length; _b++) {
                 var item = _c[_b];
-                if (item.indexOf("?") > -1) {
-                    var reg = new RegExp(item.replace(/\?/g, " (\\S+) "), "g");
-                    var m = [];
-                    var r = null;
-                    while (r = reg.exec(msg)) {
-                        m.push(r[1].trim());
+                if (typeof item === 'string') {
+                    if (item.indexOf("?") > -1) {
+                        var reg = new RegExp('^' + item.replace(/\?/g, " (\\S+) ") + '$', "g");
+                        var m = [];
+                        var r = null;
+                        while (r = reg.exec(msg)) {
+                            m.push(r[1].trim());
+                        }
+                        m.length && (matched = m) && (flag = true);
                     }
-                    m.length && (matched = m);
-                    flag = true;
+                    else if (msg === item)
+                        flag = true;
                 }
-                else if (msg === item)
-                    flag = true;
+                else {
+                    var condition = item;
+                    if (condition(msg))
+                        flag = true;
+                }
             }
             if (!flag)
                 continue;
             if (transition.from.indexOf(this.state) === -1) {
                 continue;
             }
-            this.changeState(this.state, transition.to, data, matched || undefined);
+            //多个并发的情况，只允许有一个生效
+            try {
+                this.changeState(this.state, transition.to, data, matched || undefined);
+                return;
+            }
+            catch (e) {
+            }
             // this.state = transition.to;
-            return;
+            // return;
         }
     };
     StateMachine.prototype.mainLoop = function () {
@@ -74,15 +88,14 @@ var StateMachine = (function () {
             console.log(msg, data);
             this.onMessageReceive(msg, data);
         }
-        if (this.triggers.length) {
-            for (var _i = 0, _b = this.triggers; _i < _b.length; _i++) {
-                var _c = _b[_i], condition = _c[0], transition = _c[1];
-                if (condition()) {
-                    this.state = transition.to;
-                    break;
-                }
-            }
-        }
+        // if (this.triggers.length) {
+        //     for (const [condition, transition] of this.triggers) {
+        //         if (condition()) {
+        //             this.state = transition.to;
+        //             break;
+        //         }
+        //     }
+        // }
         this.loopTimer = setTimeout(this.mainLoop.bind(this), 32);
     };
     StateMachine.prototype.when = function (conditionOrConditions) {
@@ -97,10 +110,16 @@ var StateMachine = (function () {
             return this;
         }
         else if (type === 'function') {
-            this.triggers.push([conditionOrConditions, this.currentFactory]);
+            conditionOrConditions = conditionOrConditions;
+            this.currentFactory.whenChannelWrited.push(conditionOrConditions);
+            // this.triggers.push([conditionOrConditions as Function, this.currentFactory]);
             return this;
         }
-        throw new Error();
+        else {
+            conditionOrConditions = conditionOrConditions;
+            this.currentFactory.whenChannelWrited = this.currentFactory.whenChannelWrited.concat(conditionOrConditions);
+            return this;
+        }
     };
     StateMachine.prototype.add = function () {
         if (this.currentFactory === null) {
@@ -146,19 +165,21 @@ var StateMachine = (function () {
     //     this.currentFactory.to = states;
     //     return this;
     // }
-    StateMachine.prototype.do = function (actionOrActions) {
-        var actions = typeof actionOrActions === 'function' ? [actionOrActions] : actionOrActions;
+    StateMachine.prototype.do = function (action) {
+        // let actions = typeof actionOrActions === 'function' ? [actionOrActions] : actionOrActions;
         if (this.currentFactory === null) {
             this.currentFactory = new state_1.Transistion;
         }
-        this.currentFactory.action = this.currentFactory.action.concat(actions);
+        if (!this.currentFactory.action) {
+            this.currentFactory.action = action;
+        }
         return this;
     };
     StateMachine.prototype.transition = function (rule) {
         if (this.currentFactory === null) {
             this.currentFactory = new state_1.Transistion;
         }
-        var arr = rule.split("->").map(function (item) { return item.trim(); });
+        var arr = rule.split(/(?:\-|\=)\>/).map(function (item) { return item.trim(); });
         if (arr.length != 2) {
             throw new Error();
         }

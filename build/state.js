@@ -15,7 +15,7 @@ var Transistion = (function () {
         this.from = [];
         this.to = "";
         // public condition:Function[] = [];
-        this.action = [];
+        this.action = null;
         this.whenChannelWrited = [];
     }
     return Transistion;

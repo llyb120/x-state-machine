@@ -14,7 +14,7 @@ export class StateMachine {
     public channel: Channel;
     private loopTimer = null;
 
-    constructor() {
+    constructor(private context?) {
         this.channel = new Channel(this);
 
         this.mainLoop();
@@ -27,19 +27,17 @@ export class StateMachine {
                 if (transition.to !== newState) continue;
                 //进度转化
                 //只允许触发一个
-                for (const action of transition.action) {
-                    let ret = preData === undefined ? action(data) : action(...preData, data);
-                    if (ret === false) {
-                        throw new Error();
-                    }
-                    if (typeof ret === 'string') {
-                        this.forceSetState(ret);
-                    }
-                    if (newState !== '?') {
-                        this._state = newState;
-                    }
-                    return true;
+                let ret = preData === undefined ? transition.action.call(this.context, data) : transition.action.call(this.context, ...preData, data);
+                if (ret === false) {
+                    throw new Error();
                 }
+                if (typeof ret === 'string') {
+                    this.forceSetState(ret);
+                }
+                if (newState !== '?') {
+                    this._state = newState;
+                }
+                return true;
             }
         }
         return false;
@@ -174,14 +172,15 @@ export class StateMachine {
     //     return this;
     // }
 
-    do(actionOrActions: Function | Function[]) {
-        let actions = typeof actionOrActions === 'function' ? [actionOrActions] : actionOrActions;
+    do(action: Function) {
+        // let actions = typeof actionOrActions === 'function' ? [actionOrActions] : actionOrActions;
         if (this.currentFactory === null) {
             this.currentFactory = new Transistion;
         }
-        this.currentFactory.action = this.currentFactory.action.concat(actions);
+        if(!this.currentFactory.action){
+            this.currentFactory.action = action;
+        }
         return this;
-
     }
 
 

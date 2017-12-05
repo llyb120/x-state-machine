@@ -19,9 +19,20 @@ fsm.transition("cubi -> ?")
     for (var _i = 0; _i < arguments.length; _i++) {
         args[_i] = arguments[_i];
     }
-    console.log.apply(console, args);
+    // console.log(...args);
     return '2b';
 })
+    .add();
+fsm.transition("cubi => rigou")
+    .when(function (item) { return item == 'guichu'; })
+    .do(function () {
+    console.log(456);
+    return false;
+})
+    .add();
+fsm.transition("cubi => riqiang")
+    .when(function (item) { return item == 'guichu'; })
+    .do(function () { return console.log(789); })
     .add();
 console.log(fsm.state);
 //触发器（效率最差）
@@ -31,7 +42,8 @@ console.log(fsm.state);
 // //手动更改状态
 // fsm.state = "guichu";
 //使用信道
-fsm.channel.write("test generic", { guichu: 1 });
+// fsm.channel.write("test generic",{guichu:1});
+fsm.send("guichu");
 setTimeout(function () {
     console.log(fsm.state);
 }, 500);

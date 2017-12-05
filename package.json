@@ -5,7 +5,8 @@
     "ts-loader": "^3.2.0",
     "typescript": "^2.6.2"
   },
-  "typings": "api/index.ts",
-  "types": "api/index.ts",
+  "main": "./build/state_machine",
+  "typings": "./api/index.ts",
+  "types": "./api/index.ts",
   "module": "./dist/state_machine"
 }
