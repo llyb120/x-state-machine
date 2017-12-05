@@ -91,7 +91,7 @@ export class StateMachine {
     }
 
 
-    when(conditionOrConditions: Function | string) {
+    when(conditionOrConditions: Function | string | string[]) {
         if (this.currentFactory === null) {
             this.currentFactory = new Transistion;
         }
@@ -108,6 +108,10 @@ export class StateMachine {
             this.currentFactory.whenChannelWrited.push(conditionOrConditions);
             // this.triggers.push([conditionOrConditions as Function, this.currentFactory]);
             return this;
+        }
+        else{
+            conditionOrConditions = conditionOrConditions as string[];
+            this.currentFactory.whenChannelWrited = this.currentFactory.whenChannelWrited.concat(conditionOrConditions);
         }
         throw new Error();
     }
