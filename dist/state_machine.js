@@ -95,23 +95,18 @@ var StateMachine = (function () {
                 //只允许触发一个
                 for (var _b = 0, _c = transition.action; _b < _c.length; _b++) {
                     var action = _c[_b];
-                    try {
-                        var ret = preData === undefined ? action(data) : action.apply(void 0, preData.concat([data]));
-                        if (ret === false) {
-                            break;
-                        }
-                        if (typeof ret === 'string') {
-                            this.forceSetState(ret);
-                        }
-                        if (newState !== '?') {
-                            this._state = newState;
-                        }
-                        break;
+                    var ret = preData === undefined ? action(data) : action.apply(void 0, preData.concat([data]));
+                    if (ret === false) {
+                        throw new Error();
                     }
-                    catch (e) {
+                    if (typeof ret === 'string') {
+                        this.forceSetState(ret);
                     }
+                    if (newState !== '?') {
+                        this._state = newState;
+                    }
+                    return true;
                 }
-                return true;
             }
         }
         return false;
@@ -147,9 +142,15 @@ var StateMachine = (function () {
             if (transition.from.indexOf(this.state) === -1) {
                 continue;
             }
-            this.changeState(this.state, transition.to, data, matched || undefined);
+            //多个并发的情况，只允许有一个生效
+            try {
+                this.changeState(this.state, transition.to, data, matched || undefined);
+                return;
+            }
+            catch (e) {
+            }
             // this.state = transition.to;
-            return;
+            // return;
         }
     };
     StateMachine.prototype.mainLoop = function () {
